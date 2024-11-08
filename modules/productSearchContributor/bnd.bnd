@@ -1,0 +1,4 @@
+Bundle-Name: productSearchContributor
+Bundle-SymbolicName: com.mw.productSearchContributor
+Bundle-Version: 1.0.0
+Export-Package: com.mw.productSearchContributor
