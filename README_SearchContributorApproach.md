@@ -1,28 +1,29 @@
-Note: This POC uses attribute name: search.experiences.mwCommerceAccountGroupIds
+Note: This POC uses attribute:
+
+"search.experiences.commerceAccountGroupIdsFilterRequired" = true;
+"search.experiences.commerceAccountGroupIdsGroupId" = themeDisplay.getScopeGroupId();
 
 To test:
 
 1. Build and deploy the custom module.
 
+- This uses the userId (from searchContext) and the groupId passed as an attribute to get the active AccountEntry then get the AccountGroupIds for that accountEntry.
+
 2. Create an empty Blueprint.
 
 3. Create a Search Bar Widget Template:
 
-- See sample widgetTemplate/widgetTemplate.txt and method getData(). This passes a custom attribute with hardcoded value. Must be a comma separated string...
+- See sample widgetTemplate_SearchContributorApproach_NO_HARDCODING.txt and method getData(). 
 
-For example:
+This passes 2 custom attributes:
 
-"search.experiences.mwCommerceAccountGroupIds": "34615,34617"
-
-where 34615 and 34617 are example account group Ids.
+"search.experiences.commerceAccountGroupIdsFilterRequired" = true;
+"search.experiences.commerceAccountGroupIdsGroupId" = themeDisplay.getScopeGroupId();
 
 4. Update the Search Bar Configuration on the Search Page
 - Use the Search Bar Widget Template from above.
 - Use the Blueprint from above.
 
-5. Setup test data and replace the hardcoded account group Ids.
+5. Setup test data.
 
 6. Test
-
-TODO:
-- Add logic to get the account group Ids for the current user based on the currently selected account in the current site.

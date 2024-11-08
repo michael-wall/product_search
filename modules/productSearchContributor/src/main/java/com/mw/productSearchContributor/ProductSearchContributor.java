@@ -1,6 +1,10 @@
 package com.mw.productSearchContributor;
 
+import com.liferay.account.manager.CurrentAccountEntryManager;
+import com.liferay.account.model.AccountEntry;
+import com.liferay.account.service.AccountGroupLocalService;
 import com.liferay.commerce.product.constants.CPField;
+import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.search.BooleanClauseOccur;
@@ -9,12 +13,15 @@ import com.liferay.portal.kernel.search.filter.BooleanFilter;
 import com.liferay.portal.kernel.search.filter.Filter;
 import com.liferay.portal.kernel.search.filter.TermFilter;
 import com.liferay.portal.kernel.util.GetterUtil;
-import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.search.spi.model.query.contributor.ModelPreFilterContributor;
 import com.liferay.portal.search.spi.model.registrar.ModelSearchSettings;
 
-import org.osgi.service.component.annotations.Component;
+import java.util.Arrays;
 
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+
+// Based on class CPDefinitionModelPreFilterContributor
 @Component(
 		property = {
 			"indexer.class.name=com.liferay.commerce.product.model.CPDefinition",
@@ -25,8 +32,6 @@ import org.osgi.service.component.annotations.Component;
 	public class ProductSearchContributor
 		implements ModelPreFilterContributor {
 	
-	
-	
 	@Override
 	public void contribute(
 		BooleanFilter booleanFilter, ModelSearchSettings modelSearchSettings,
@@ -35,12 +40,48 @@ import org.osgi.service.component.annotations.Component;
 		_log.info("contribute");
 
 		_filterByAccountGroupIds(booleanFilter, searchContext);
+	}
+	
+	private long[] getCommerceAccountGroupIds(SearchContext searchContext, long groupId) {
+		
+		try {
+			long userId = searchContext.getUserId();
 
+			if (userId > 0 && groupId > 0) {
+				_log.info("UserId: " + userId + ", groupId: " + groupId);
+				
+				AccountEntry accountEntry = _currentAccountEntryManager.getCurrentAccountEntry(groupId, userId);
+				
+				if (accountEntry != null) {
+					_log.info("accountEntryId: " + accountEntry.getAccountEntryId() + ", accountEntryName: " + accountEntry.getName());
+				
+					long[] accountGroupIds = _accountGroupLocalService.getAccountGroupIds(accountEntry.getAccountEntryId());
+					
+					_log.info("accountGroupIds: " + Arrays.toString(accountGroupIds));
+					
+					return accountGroupIds;
+				}
+			}
+		} catch (PortalException e) {
+			e.printStackTrace();
+		}
+		
+		return null;
 	}
 	
 	private void _filterByAccountGroupIds(
 			BooleanFilter booleanFilter, SearchContext searchContext) {
+		
+			boolean commerceAccountGroupIdsFilterRequired = GetterUtil.getBoolean(searchContext.getAttribute("search.experiences.commerceAccountGroupIdsFilterRequired"), false);
+			long commerceAccountGroupIdsGroupId = GetterUtil.getLong(searchContext.getAttribute("search.experiences.commerceAccountGroupIdsGroupId"), -1);
+			
+			_log.info("commerceAccountGroupIdsFilterRequired: " + commerceAccountGroupIdsFilterRequired + ", groupId: " + commerceAccountGroupIdsGroupId);
+			
+			if (!commerceAccountGroupIdsFilterRequired) return; // Do nothing...
+			if (commerceAccountGroupIdsGroupId == -1) return; // Do nothing...
 
+			long[] commerceAccountGroupIds = getCommerceAccountGroupIds(searchContext, commerceAccountGroupIdsGroupId);
+			
 			BooleanFilter accountGroupsBooleanFilter = new BooleanFilter();
 
 			BooleanFilter accountGroupsFilterEnableBooleanFilter =
@@ -49,34 +90,11 @@ import org.osgi.service.component.annotations.Component;
 			accountGroupsFilterEnableBooleanFilter.addTerm(
 				CPField.ACCOUNT_GROUP_FILTER_ENABLED, Boolean.TRUE.toString(),
 				BooleanClauseOccur.MUST);
-
-			long userId = searchContext.getUserId();
 			
-			if (userId > 0) {
-				_log.info("UserId: " + userId);
-			}
-			
-			///boolean commerceAccountGroupIdsFilterRequired = .... searchContext.getAttribute("search.experiences.commerceAccountGroupIdsFilterRequired") // default to false
-			
-			//if commerceAccountGroupIdsFilterRequired is true and user > 0 then get that users commerceAccountGroupIds using java API and use below in place of the code in the TODO START / END below...
-			if (userId > 0) {
-				_log.info("UserId: " + userId);
-			}
-			
-			// TODO START REPLACE with java API logic...
-			String mwCommerceAccountGroupIds = GetterUtil.getString(searchContext.getAttribute("search.experiences.mwCommerceAccountGroupIds"), null);
-			
-			_log.info("mwCommerceAccountGroupIds: " + mwCommerceAccountGroupIds);
-		
-			if (Validator.isNull(mwCommerceAccountGroupIds)) return;
-			
-			String[] mwCommerceAccountGroupIdsArray = mwCommerceAccountGroupIds.split(",");
-			// TODO END
-			
-			if ((mwCommerceAccountGroupIdsArray != null) && (mwCommerceAccountGroupIdsArray.length > 0)) {
+			if ((commerceAccountGroupIds != null) && (commerceAccountGroupIds.length > 0)) {
 				BooleanFilter accountGroupIdsBooleanFilter = new BooleanFilter();
 
-				for (String accountGroupId : mwCommerceAccountGroupIdsArray) {
+				for (long accountGroupId : commerceAccountGroupIds) {
 					Filter termFilter = new TermFilter(
 						"commerceAccountGroupIds", String.valueOf(accountGroupId));
 
@@ -106,7 +124,13 @@ import org.osgi.service.component.annotations.Component;
 					accountGroupsBooleanFilter, BooleanClauseOccur.MUST);
 			}
 		}	
+
+	@Reference
+	private  AccountGroupLocalService _accountGroupLocalService;		
 	
+	@Reference
+	private CurrentAccountEntryManager _currentAccountEntryManager;	
+		
 	private static final Log _log = LogFactoryUtil.getLog(
 			ProductSearchContributor.class);	
 }
