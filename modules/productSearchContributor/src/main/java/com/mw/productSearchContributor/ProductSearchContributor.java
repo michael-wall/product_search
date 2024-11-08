@@ -50,6 +50,20 @@ import org.osgi.service.component.annotations.Component;
 				CPField.ACCOUNT_GROUP_FILTER_ENABLED, Boolean.TRUE.toString(),
 				BooleanClauseOccur.MUST);
 
+			long userId = searchContext.getUserId();
+			
+			if (userId > 0) {
+				_log.info("UserId: " + userId);
+			}
+			
+			///boolean commerceAccountGroupIdsFilterRequired = .... searchContext.getAttribute("search.experiences.commerceAccountGroupIdsFilterRequired") // default to false
+			
+			//if commerceAccountGroupIdsFilterRequired is true and user > 0 then get that users commerceAccountGroupIds using java API and use below in place of the code in the TODO START / END below...
+			if (userId > 0) {
+				_log.info("UserId: " + userId);
+			}
+			
+			// TODO START REPLACE with java API logic...
 			String mwCommerceAccountGroupIds = GetterUtil.getString(searchContext.getAttribute("search.experiences.mwCommerceAccountGroupIds"), null);
 			
 			_log.info("mwCommerceAccountGroupIds: " + mwCommerceAccountGroupIds);
@@ -57,6 +71,7 @@ import org.osgi.service.component.annotations.Component;
 			if (Validator.isNull(mwCommerceAccountGroupIds)) return;
 			
 			String[] mwCommerceAccountGroupIdsArray = mwCommerceAccountGroupIds.split(",");
+			// TODO END
 			
 			if ((mwCommerceAccountGroupIdsArray != null) && (mwCommerceAccountGroupIdsArray.length > 0)) {
 				BooleanFilter accountGroupIdsBooleanFilter = new BooleanFilter();
